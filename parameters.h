@@ -1,0 +1,6 @@
+#define TICK_PERIOD 1000000
+#define STACK_SIZE 3000
+#define SHMNAM_1 1234567
+#define SHMNAM_2 1234568
+#define NTASKS 3
+#define TASK_PRIORITY 1

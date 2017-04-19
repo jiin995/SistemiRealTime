@@ -1,0 +1,7 @@
+arch=`rtai-config --linux-version`
+if [[ "$arch" == *"3.14"* ]]; then
+rmmod rt_process
+else
+rmmod process
+fi
+./remod
