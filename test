@@ -4,7 +4,5 @@
 			l+=rest_div(taskPeriods[i],taskPeriods[i+1]);
 		else
 			l+=rest_div(taskPeriods[i+1],taskPeriods[i]);
-	}
-
-	
+	}	
 	printk(KERN_INFO "l==> %d",l);
