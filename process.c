@@ -25,14 +25,18 @@ static void wave_gen(int t)
 {
 	RTIME x;
 	while(1){
-		x=rt_get_time_ns();
+		x=rt_get_cpu_time_ns();
 		if(onda[t]>0)
 			onda[t]=0;
 		else
 			onda[t]=ampiezza[t];
 	
-		cpu_use[t]=rt_get_time_ns()-x;
-	//	utilization[t]=cpu_use[t]/semiperiodi[t];
+		cpu_use[t]=rt_get_cpu_time_ns()-x;
+		
+		//porto il periodo da nanosecondi a secondi, faccio la moltiplicazione per la frequenza
+		utilization[t]=cpu_use[t]*(100/semiperiodi[t]);
+		//printk(KERN_INFO " \n [Wave-Generator] : TASK %d Utilizzazione %lld \n",t,cpu_use[t]);
+
 		rt_task_wait_period();
 	}
 }
@@ -42,18 +46,23 @@ static void monitor(int in)
 	RTIME util[NTASKS];
 	int i,j;
 
+	for(i=0;i<NTASKS;i++)
+		util[i]=0;
+
+    printk(KERN_INFO " \n [Wave-Generator] : TASK Monitor Avviato \n");
+
 	i=0;
 	while(1)
 	{
 		if(i==100){
-				for(j=0;i<3;i++){
-					utilization[j]=utilization[j]*0.01;
-					printk(KERN_INFO " \n [Wave-Generator] : TASK %d Utilizzazione %d \n",j,utilization[j]);
+				for(j=0;j<3;j++){
+					util[j]=util[j]*0.01;
+					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Utilizzazione %d \n",j,util[j]);
 				}
 				i=0;
 			}
 		else{
-			for(j=0;i<3;i++)
+			for(j=0;j<3;j++)
 				util[j]+=utilization[j];
 			i++;
 		}
@@ -61,7 +70,7 @@ static void monitor(int in)
 	}
 }
 
-int rest_div(int a,int b){
+int div(int a,int b){
 	int temp=0;
 
 	while(a<b){
@@ -105,10 +114,10 @@ int init_module(void)
 
 	for(i=0;i<NTASKS;i++){
     		rt_task_init(&tasks[i], wave_gen, i, STACK_SIZE, TASK_PRIORITY, 1, 0);
-			rt_task_make_periodic(&tasks[i], rt_get_time() + tick_period, tick_period*semiperiodi[i]);
+			rt_task_make_periodic(&tasks[i], rt_get_time() + tick_period, tick_period*(nano2count(semiperiodi[i])));
 	}
 	
-	rt_task_init(&tasks[NTASKS], monitor, 0, STACK_SIZE, TASK_PRIORITY, 1, 0);
+	rt_task_init(&tasks[NTASKS], monitor, 1, STACK_SIZE, TASK_PRIORITY, 1, 0);
 	rt_task_make_periodic(&tasks[NTASKS], rt_get_time() + tick_period, tick_period);
 
 	rt_spv_RMS(hard_cpu_id());
@@ -126,7 +135,7 @@ void cleanup_module(void)
 
 //Termino i processi
 	int i=0;
-		for(i=0;i<NTASKS;i++){
+		for(i=0;i<NTASKS+1;i++){
    			 rt_task_delete(&tasks[i]);
 		}
 
