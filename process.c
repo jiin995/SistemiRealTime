@@ -47,7 +47,7 @@ static void monitor(int in)
 	{
 		if(i==100){
 				for(j=0;i<3;i++){
-				//	utilization[j]=utilization[j]/100;
+					utilization[j]=utilization[j]*0.01;
 					printk(KERN_INFO " \n [Wave-Generator] : TASK %d Utilizzazione %d \n",j,utilization[j]);
 				}
 				i=0;
@@ -61,11 +61,14 @@ static void monitor(int in)
 	}
 }
 
-int rest_div(int r,int t){
-	while(r<=0){
-		r=r-t;
+int rest_div(int a,int b){
+	int temp=0;
+
+	while(a<b){
+		a=a-b;
+		temp++;
 	}
-	return -r;
+	return temp;
 }
 
 int init_module(void)
