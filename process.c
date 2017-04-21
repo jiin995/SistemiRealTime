@@ -27,6 +27,7 @@ static void wave_gen(int t)
 	RTIME start;
 	while(1){
 		start=rt_get_cpu_time_ns();
+
 		if(onda[t]>0)
 			onda[t]=0;
 		else
@@ -34,12 +35,12 @@ static void wave_gen(int t)
 	
 		cpu_use[t]=rt_get_cpu_time_ns()-start;
 		
-		//porto il periodo da nanosecondi a secondi, faccio la moltiplicazione per la frequenza
-		utilization[t]=cpu_use[t]*(100/semiperiodi[t]);
+		// la moltiplico per 1000 la frequenza moltiplichiamo per
+		utilization[t]=cpu_use[t]*(1000/semiperiodi[t]);
+
 		//non conoscendo il tempo di arrivo uso come tempo di arrivo il tempo in cui il task inizia l'esecuzione
 		//applicando la formula deadline-tempoDiArrivo-tempoDiElaborazione
 		slack_time[t]=count2nano(next_period())-start-cpu_use[t];
-		//printk(KERN_INFO " \n [Wave-Generator] : TASK %d Utilizzazione %lld \n",t,cpu_use[t]);
 
 		rt_task_wait_period();
 	}
@@ -57,14 +58,13 @@ static void monitor(int in)
     printk(KERN_INFO " \n [Wave-Generator] : TASK Monitor Avviato \n");
 
 	i=0;
-	while(1)
-	{
+	while(1){
 		if(i==100){
 				for(j=0;j<3;j++){
 					util[j]=util[j]*0.01;
 					slack[j]=slack[j]*0.01;
 					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Utilizzazione media %d \n",j,util[j]);
-					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Slack_Time medio %d \n",j,slack[j]);
+					printk(KERN_INFO " [Wave-Generator]:{Monitor}==> TASK %d Slack_Time medio %d \n",j,slack[j]);
 				}
 				i=0;
 			}
@@ -79,18 +79,7 @@ static void monitor(int in)
 	}
 }
 
-int div(int a,int b){
-	int temp=0;
-
-	while(a<b){
-		a=a-b;
-		temp++;
-	}
-	return temp;
-}
-
-int init_module(void)
-{
+int init_module(void){
 
 	printk(KERN_INFO " \n [Wave-Generator] : Caricato \n");
     RTIME tick_period;	
@@ -135,9 +124,7 @@ int init_module(void)
 
 }
 
-void cleanup_module(void)
-
-{
+void cleanup_module(void){
 
 //Fermo il timer
     stop_rt_timer();
