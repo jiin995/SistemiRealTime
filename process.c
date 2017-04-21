@@ -36,6 +36,9 @@ static void wave_gen(int t)
 		
 		//porto il periodo da nanosecondi a secondi, faccio la moltiplicazione per la frequenza
 		utilization[t]=cpu_use[t]*(100/semiperiodi[t]);
+		//non conoscendo il tempo di arrivo uso come tempo di arrivo il tempo in cui il task inizia l'esecuzione
+		//applicando la formula deadline-tempoDiArrivo-tempoDiElaborazione
+		slack_time[t]=count2nano(next_period())-start-cpu_use[t];
 		//printk(KERN_INFO " \n [Wave-Generator] : TASK %d Utilizzazione %lld \n",t,cpu_use[t]);
 
 		rt_task_wait_period();
@@ -59,6 +62,7 @@ static void monitor(int in)
 		if(i==100){
 				for(j=0;j<3;j++){
 					util[j]=util[j]*0.01;
+					slack[j]=slack[j]*0.01;
 					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Utilizzazione media %d \n",j,util[j]);
 					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Slack_Time medio %d \n",j,slack[j]);
 				}
