@@ -9,6 +9,7 @@
 static RT_TASK tasks[NTASKS+1];
 static RTIME cpu_use[NTASKS];
 static RTIME utilization[NTASKS];
+static RTIME slack_time[NTASKS];
 
 static int *onda;
 static int *ampiezza;
@@ -23,15 +24,15 @@ MODULE_PARM_DESC(semiperiodi, "An array of half periods of wave");
 
 static void wave_gen(int t)
 {
-	RTIME x;
+	RTIME start;
 	while(1){
-		x=rt_get_cpu_time_ns();
+		start=rt_get_cpu_time_ns();
 		if(onda[t]>0)
 			onda[t]=0;
 		else
 			onda[t]=ampiezza[t];
 	
-		cpu_use[t]=rt_get_cpu_time_ns()-x;
+		cpu_use[t]=rt_get_cpu_time_ns()-start;
 		
 		//porto il periodo da nanosecondi a secondi, faccio la moltiplicazione per la frequenza
 		utilization[t]=cpu_use[t]*(100/semiperiodi[t]);
@@ -44,6 +45,7 @@ static void wave_gen(int t)
 static void monitor(int in)
 {
 	RTIME util[NTASKS];
+	RTIME slack[NTASKS];
 	int i,j;
 
 	for(i=0;i<NTASKS;i++)
@@ -57,13 +59,16 @@ static void monitor(int in)
 		if(i==100){
 				for(j=0;j<3;j++){
 					util[j]=util[j]*0.01;
-					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Utilizzazione %d \n",j,util[j]);
+					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Utilizzazione media %d \n",j,util[j]);
+					printk(KERN_INFO " \n [Wave-Generator]:{Monitor}==> TASK %d Slack_Time medio %d \n",j,slack[j]);
 				}
 				i=0;
 			}
 		else{
-			for(j=0;j<3;j++)
+			for(j=0;j<3;j++){
 				util[j]+=utilization[j];
+				slack[j]+=slack_time[j];
+			}
 			i++;
 		}
 		rt_task_wait_period();
@@ -114,7 +119,7 @@ int init_module(void)
 
 	for(i=0;i<NTASKS;i++){
     		rt_task_init(&tasks[i], wave_gen, i, STACK_SIZE, TASK_PRIORITY, 1, 0);
-			rt_task_make_periodic(&tasks[i], rt_get_time() + tick_period, tick_period*(nano2count(semiperiodi[i])));
+			rt_task_make_periodic(&tasks[i], rt_get_time() + tick_period, tick_period*(semiperiodi[i]));
 	}
 	
 	rt_task_init(&tasks[NTASKS], monitor, 1, STACK_SIZE, TASK_PRIORITY, 1, 0);
