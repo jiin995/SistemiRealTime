@@ -1,1 +1,0 @@
-cmd_/home/jiin995/Desktop/HomeWork1/rt_process.ko := ld -r -m elf_i386 -T /usr/src/linux-3.14.33/scripts/module-common.lds --build-id  -o /home/jiin995/Desktop/HomeWork1/rt_process.ko /home/jiin995/Desktop/HomeWork1/rt_process.o /home/jiin995/Desktop/HomeWork1/rt_process.mod.o

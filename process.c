@@ -1,4 +1,6 @@
-//-------------------Previtera Gabriele ====>Previtera Gabriele
+//-------------------Previtera Gabriele ==> HomeWork1-----------
+
+
 #include <linux/module.h>
 #include <asm/io.h>
 #include <asm/rtai.h>
@@ -22,9 +24,10 @@ module_param_array(semiperiodi, int, &arr_argc, 0000);
 MODULE_PARM_DESC(semiperiodi, "An array of half periods of wave");
  
 
-static void wave_gen(int t)
-{
+static void wave_gen(int t){
+
 	RTIME start;
+
 	while(1){
 		start=rt_get_cpu_time_ns();
 
@@ -35,19 +38,19 @@ static void wave_gen(int t)
 	
 		cpu_use[t]=rt_get_cpu_time_ns()-start;
 		
-		// la moltiplico per 1000 la frequenza moltiplichiamo per
+	// la moltiplico per 1000 per vedere il risultato della moltiplicazione in intero
 		utilization[t]=cpu_use[t]*(1000/semiperiodi[t]);
 
-		//non conoscendo il tempo di arrivo uso come tempo di arrivo il tempo in cui il task inizia l'esecuzione
-		//applicando la formula deadline-tempoDiArrivo-tempoDiElaborazione
+	//non conoscendo il tempo di arrivo uso come tempo di arrivo il tempo in cui il task inizia l'esecuzione
+	//applicando la formula deadline-tempoDiArrivo-tempoDiElaborazione
 		slack_time[t]=count2nano(next_period())-start-cpu_use[t];
 
 		rt_task_wait_period();
 	}
 }
 
-static void monitor(int in)
-{
+static void monitor(int in){
+
 	RTIME util[NTASKS];
 	RTIME slack[NTASKS];
 	int i,j;
@@ -55,8 +58,9 @@ static void monitor(int in)
 	for(i=0;i<NTASKS;i++)
 		util[i]=0;
 
-    printk(KERN_INFO " \n [Wave-Generator] : TASK Monitor Avviato \n");
-
+#ifdef DEBUG
+    printk(KERN_INFO " \n [Wave-Generator] : Task Monitor Avviato \n");
+#endif
 	i=0;
 	while(1){
 		if(i==100){
@@ -70,6 +74,9 @@ static void monitor(int in)
 			}
 		else{
 			for(j=0;j<3;j++){
+				//potrei benissimo includere questa parte nel task gen di onde, ma preferisco tener separato il calcolo dello slack e dell'utilizzo
+				//dal task che fa la media e li stampa.
+
 				util[j]+=utilization[j];
 				slack[j]+=slack_time[j];
 			}
@@ -86,8 +93,7 @@ int init_module(void){
 
 	int i=0;
 
-	//Inizializzo le SharedMemory
-	
+//Inizializzo le SharedMemory
     onda = rtai_kmalloc(SHMNAM_1, 1);
 		for(i=0;i<NTASKS;i++){
 			onda[i]=0;
@@ -100,24 +106,24 @@ int init_module(void){
 			
 	for(i=0;i<NTASKS;i++){
 			if((semiperiodi[i]<10)||(semiperiodi[i]>100))
-				printk(KERN_INFO "[Wave-Generator]:periodo non valido %d",semiperiodi[i]);
+				printk(KERN_ERR "[Wave-Generator]:Periodo non valido %d: %d",i,semiperiodi[i]);
 	}
 
 	rt_set_periodic_mode();	//Setto la modalita' periodica per il timer
 
-
 	tick_period = start_rt_timer(nano2count(TICK_PERIOD));
 	
-	//Creo i Task che generano le onde
-
+//Creo i Task che generano le onde
 	for(i=0;i<NTASKS;i++){
     		rt_task_init(&tasks[i], wave_gen, i, STACK_SIZE, TASK_PRIORITY, 1, 0);
 			rt_task_make_periodic(&tasks[i], rt_get_time() + tick_period, tick_period*(semiperiodi[i]));
 	}
-	
+
+//creo il Task monitor	
 	rt_task_init(&tasks[NTASKS], monitor, 1, STACK_SIZE, TASK_PRIORITY, 1, 0);
 	rt_task_make_periodic(&tasks[NTASKS], rt_get_time() + tick_period, tick_period);
 
+//Schedulo i task con RM
 	rt_spv_RMS(hard_cpu_id());
 
     return 0;
@@ -129,7 +135,7 @@ void cleanup_module(void){
 //Fermo il timer
     stop_rt_timer();
 
-//Termino i processi
+//Termino i task che generano le onde e il task monitor
 	int i=0;
 		for(i=0;i<NTASKS+1;i++){
    			 rt_task_delete(&tasks[i]);
@@ -138,6 +144,8 @@ void cleanup_module(void){
 //Rilascio le SharedMemory
     rtai_kfree(SHMNAM_1);
     rtai_kfree(SHMNAM_2);
+
+	printk(KERN_INFO "[Wave-Generator]:Rimosso");
 
     return;
 
