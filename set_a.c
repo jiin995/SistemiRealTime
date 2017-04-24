@@ -18,8 +18,7 @@ int main (int argc, char ** argv)
     
     int i = 0;	
 
-    for (i = 1; i < argc; i++) {ampiezza[i-1] = atoi(argv[i]);
-		printf("%d",ampiezza[i-1]);
+    for (i = 1; i < argc; i++) {ampiezza[i-1] = atoi(argv[i]);}
     
     rtai_free (SHMNAM_2, &ampiezza);
     

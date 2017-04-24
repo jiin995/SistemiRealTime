@@ -39,7 +39,7 @@ static void wave_gen(int t){
 		cpu_use[t]=rt_get_cpu_time_ns()-start;
 		
 	// la moltiplico per 1000 per vedere il risultato della moltiplicazione in intero
-		utilization[t]=cpu_use[t]*(1000/semiperiodi[t]);
+		utilization[t]=cpu_use[t]*(100/semiperiodi[t]);
 
 	//non conoscendo il tempo di arrivo uso come tempo di arrivo il tempo in cui il task inizia l'esecuzione
 	//applicando la formula deadline-tempoDiArrivo-tempoDiElaborazione
