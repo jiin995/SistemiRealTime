@@ -29,22 +29,20 @@ int main(){
 	}
 
 
-    MBX* filter_mbx=rt_typed_named_mbx_init("FILTER",sizeof(int),FIFO_Q);
+    MBX* filter_mbx=rt_typed_named_mbx_init(FILTER_MBX,sizeof(int),FIFO_Q);
 
-    MBX* actuate_mbx=rt_typed_named_mbx_init("ACTUATE",sizeof(int),FIFO_Q);
+    MBX* actuate_mbx=rt_typed_named_mbx_init(ACTUATE_MBX,sizeof(int),FIFO_Q);
 
-    printf("ecco %u  \n",plant_state);
+    printf("Invio %u  \n",plant_state);
 
     rt_mbx_send(filter_mbx,&plant_state,sizeof(int ));
 
-    printf("ASPETTO %u  \n",plant_state);
-
-    rt_mbx_receive(actuate_mbx,&control_action,sizeof(int));
+    rt_mbx_receive_if(actuate_mbx,&control_action,sizeof(int));
         
-    printf("%u \n",control_action);
+    printf("Ricevuto %u \n",control_action);
 
-    rt_mbx_delete(actuate_mbx);
-    rt_mbx_delete (filter_mbx);
+      rt_mbx_delete(actuate_mbx);
+      rt_mbx_delete (filter_mbx);
     
 
     return 0;

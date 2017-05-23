@@ -8,6 +8,7 @@
 #include <rtai_lxrt.h>
 #include <rtai_shm.h>
 #include <rtai_sem.h>
+#include <rtai_mbx.h>
 #include <rtai_msg.h>
 #include <sys/io.h>
 #include <signal.h>
@@ -27,6 +28,7 @@ static pthread_t read_thread;
 static pthread_t filter_thread;
 static pthread_t control_thread;
 static pthread_t write_thread;
+
 static RTIME sampl_interv;   //Periodo di cui i task sono periodici
 
 static void endme(int dummy) {keep_on_running = 0;}
@@ -44,7 +46,10 @@ int control =0;
 
 SEM* space_avail;
 SEM* meas_avail;
+SEM* allarm;
 
+MBX* filter_mbx;
+MBX* actuate_mbx;
 
 static void * acquire_loop(void * par) {
 	
@@ -102,7 +107,12 @@ static void * filter_loop(void * par) {
 			avg = sum/BUF_SIZE;
 			sum = 0;
 			// sends the average measure to the controller
-			rt_send(control_Task, avg);		
+			rt_send(control_Task, avg);	
+			// sends the average measure to the controller
+			//uso la if in modo da evitare che il task si blocchi qual'ora la mailbox sia piana
+			rt_mbx_send_if(filter_mbx,&avg,sizeof(int ));
+
+
 		}
 		rt_task_wait_period();
 	}
@@ -158,11 +168,28 @@ static void * actuator_loop(void * par) {
 	rt_make_hard_real_time();
 
 	unsigned int control_action = 0;
+	unsigned int control_action_k = 0;
+
 
 	while (keep_on_running)
 	{
+		int c_task=1;
+
 		// receiving the control action from the controller
-		rt_receive(0, &control_action);
+		if(!rt_receive(0, &control_action))
+			//il task controll a livello utente e' terminato
+			c_task=0;
+		
+		//se ricevo dal controller in modalita' kernel
+		if(rt_mbx_receive_if(actuate_mbx,&control_action_k,sizeof(int))==0){
+			if(c_task){	//ho ricevuto dai due controller
+				if(control_action!=control_action_k)
+					rt_sem_signal(allarm); //i due controller mi danno valori diversi
+			}else {
+				control_action=control_action_k;} //ho ricevuto solo dal task in modalita' kernel
+		}else if(!c_task) // non ho ricevuto informazioni da nessuno dei due task
+				control_action=0;
+		
 		
 		switch (control_action) {
 			case 1: control = 1; break;
@@ -196,8 +223,13 @@ int main(void)
 
 	(*reference) = 110;
 
+	//Init message box for send data from and to controll kernel module
+	filter_mbx=rt_typed_named_mbx_init(FILTER_MBX,sizeof(int),FIFO_Q);
+    actuate_mbx=rt_typed_named_mbx_init(ACTUATE_MBX,sizeof(int),FIFO_Q);
+
 	space_avail = rt_typed_sem_init(SPACE_SEM, BUF_SIZE, CNT_SEM | PRIO_Q);
 	meas_avail = rt_typed_sem_init(MEAS_SEM, 0, CNT_SEM | PRIO_Q);
+	allarm=rt_typed_named_sem_init(ALLARM_SEM,0,BIN_SEM|PRIO_Q);
 	
 	if (rt_is_hard_timer_running()) {
 		printf("Skip hard real_timer setting...\n");
@@ -213,6 +245,7 @@ int main(void)
 	pthread_create(&filter_thread, NULL, filter_loop, NULL);
 	pthread_create(&control_thread, NULL, control_loop, NULL);
 	pthread_create(&write_thread, NULL, actuator_loop, NULL);
+
 
 	while (keep_on_running) {
 		printf("Control: %d\n",(*actuator));

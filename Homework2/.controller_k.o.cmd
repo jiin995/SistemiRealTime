@@ -926,10 +926,6 @@ deps_/home/jiin995/Desktop/SRT/Homework2/controller_k.o := \
   /usr/realtime/include/rtai_nam2num.h \
   include/linux/ctype.h \
   /usr/realtime/include/rtai_sched.h \
-  /usr/realtime/include/rtai_lxrt.h \
-  /usr/realtime/include/asm/rtai_lxrt.h \
-  /usr/realtime/include/asm/rtai_lxrt_32.h \
-    $(wildcard include/config/generic/clockevents.h) \
   /home/jiin995/Desktop/SRT/Homework2/parameters.h \
 
 /home/jiin995/Desktop/SRT/Homework2/controller_k.o: $(deps_/home/jiin995/Desktop/SRT/Homework2/controller_k.o)

@@ -1,48 +1,52 @@
 
 #include <linux/module.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/stat.h>
 #include <asm/io.h>
 #include <asm/rtai.h>
 #include <rtai_shm.h>
 #include <rtai_msg.h>
 #include <rtai_mbx.h>
 #include <rtai_sched.h>
-#include <rtai_lxrt.h>
 #include "parameters.h"
 
 static RT_TASK controller_k;
 static MBX  * actuate_mbx;
 static MBX  * filter_mbx;
 
-static int* actuate;
 static int* reference;
-
-static int keep_on_running=1;
-
-static int avg = 0;
 
 static void control_loop(int in){
 
 	unsigned int plant_state = 0;
 	int error = 0;
 	unsigned int control_action = 0;
-	while (keep_on_running){
+
+	while (1){
 		// receiving the average plant state from the filter
-		rt_mbx_receive(filter_mbx,&plant_state,sizeof(int));
+		if(!rt_mbx_receive(filter_mbx,&plant_state,sizeof(int))){
 
-        printk(KERN_INFO"[Controller_Kernel] --> Plant_State %d",plant_state);
+     	   printk(KERN_INFO"[Controller_Kernel] --> Plant_State %d \n",plant_state);
 
+			// computation of the control law
+			error = (*reference) - plant_state;
 
-		// computation of the control law
-		error = (*reference) - plant_state;
+			//if (error > 0) control_action = 1;
+			//else if (error < 0) control_action = 2;
+			//else control_action = 3;
+			control_action=4;
+			// sending the control action to the actuator
+			if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)
+				printk(KERN_INFO"[Controller_Kernel] --> Error while send the control action to actuate \n");
+			else
+				printk(KERN_INFO"[Controller_Kernel] --> Control_action %d \n",control_action);			
+		}else{
+			control_action=0;
+			if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)
+					printk(KERN_INFO"[Controller_Kernel] --> Error while send the control action to actuate \n");
 
-		if (error > 0) control_action = 1;
-		else if (error < 0) control_action = 2;
-		else control_action = 3;
-
-		// sending the control action to the actuator
-		rt_mbx_send(actuate_mbx,&control_action,sizeof(int));
-            printk(KERN_INFO"[Controller_Kernel] --> Error while send the control action to actuate");
-
+		}
 		rt_task_wait_period();
     }
 
@@ -52,9 +56,9 @@ int init_module(void){
 
 	printk(KERN_INFO"[Controller_Kernel] --> Module loaded");
 
-//	reference = rtai_kmalloc(REFSENS, sizeof(int));
-
- //	(*reference)=100;
+	//Attach at shared memory
+	reference = rtai_kmalloc(REFSENS, sizeof(int));
+	
 
     if (rt_is_hard_timer_running()) {
 		printk(KERN_INFO "Skip hard real_timer setting...");
@@ -67,9 +71,8 @@ int init_module(void){
 
     RTIME   sampl_interv = nano2count(CNTRL_TIME);
 
-	filter_mbx=rt_typed_named_mbx_init("FILTER",sizeof(int),FIFO_Q);
-
-    actuate_mbx=rt_typed_named_mbx_init("ACTUATE",sizeof(int),FIFO_Q);
+	filter_mbx=rt_typed_named_mbx_init(FILTER_MBX,sizeof(int),FIFO_Q);
+    actuate_mbx=rt_typed_named_mbx_init(ACTUATE_MBX,sizeof(int),FIFO_Q);
 
    	rt_task_make_periodic(&controller_k, rt_get_time() + sampl_interv, sampl_interv*BUF_SIZE);
 

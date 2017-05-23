@@ -15,7 +15,7 @@ CC = gcc
 LXRT_CFLAGS = $(shell rtai-config --lxrt-cflags)
 LXRT_LDFLAGS = $(shell rtai-config --lxrt-ldflags)
 
-all: plant reference controller
+all: plant reference controller test allarm
 
 plant: plant.c
 	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
@@ -29,7 +29,11 @@ reference: reference.c
 controller: controller.c
 	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
 
+allarm:allarm.c
+	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
+
+
 clean:
-	rm -f *.o *~ plant reference controller
+	rm -f *.o *~ plant reference controller test allarm
 
 .PHONY: clean

@@ -13,6 +13,10 @@
 #define ACT_SHM 112112
 #define REFSENS 111213
 
+#define ALLARM_SEM "ALL_SEM"
+#define ACTUATE_MBX "ACT_MBX"
+#define FILTER_MBX "FIL_MBX"
+
 #define SPACE_SEM 1234444
 #define MEAS_SEM 1234445
 
