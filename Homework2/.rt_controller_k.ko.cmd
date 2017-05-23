@@ -1,0 +1,1 @@
+cmd_/home/jiin995/Desktop/SRT/Homework2/rt_controller_k.ko := ld -r -m elf_i386 -T /usr/src/linux-3.14.33/scripts/module-common.lds --build-id  -o /home/jiin995/Desktop/SRT/Homework2/rt_controller_k.ko /home/jiin995/Desktop/SRT/Homework2/rt_controller_k.o /home/jiin995/Desktop/SRT/Homework2/rt_controller_k.mod.o
