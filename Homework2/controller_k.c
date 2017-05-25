@@ -11,7 +11,7 @@
 #include <rtai_sched.h>
 #include "parameters.h"
 
-static 	RT_TASK **shm;
+static RT_TASK **shm; // utilizzato per condividere il puntatore al task in modo tale che possa essere ripreso quando il controllore e' pronto cosicche' possiamo evitare allarmi dovuti alla non sync
 static RT_TASK controller_k;
 
 static MBX  * actuate_mbx;
@@ -29,10 +29,7 @@ static void control_loop(int in){
 	rt_task_suspend(&controller_k);
 	printk(KERN_INFO "Ripreso");
 
-
 	while (1){
-			printk(KERN_INFO "2");
-
 		// receiving the average plant state from the filter
 		if(!rt_mbx_receive(filter_mbx,&plant_state,sizeof(int))){
 
@@ -68,7 +65,6 @@ int init_module(void){
 	//Attach at shared memory
 	reference = rtai_kmalloc(REFSENS, sizeof(int));
 	
-
     if (rt_is_hard_timer_running()) {
 		printk(KERN_INFO "Skip hard real_timer setting...");
 	} else {
@@ -77,7 +73,6 @@ int init_module(void){
 	}
     
     rt_task_init(&controller_k, control_loop, 0, STACK_SIZE, TASK_PRIORITY, 1, 0);
-
 
 	shm=rtai_kmalloc(KTS_SHM,sizeof(RT_TASK *));
 	*shm=&controller_k;
@@ -95,11 +90,11 @@ int init_module(void){
 void cleanup_module(void){
 
  //   stop_rt_timer();
+ 	rt_task_delete(&controller_k);
 
-    rt_task_delete(&controller_k);
 	rtai_kfree(KTS_SHM);
+	rt_mbx_delete(actuate_mbx);
+	rt_mbx_delete (filter_mbx);
 
 
-//  rt_mbx_delete(actuate_mbx);
-//  rt_mbx_delete (filter_mbx);
 }

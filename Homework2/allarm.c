@@ -21,7 +21,9 @@ static void endme(int dummy) {keep_on_running = 0;}
 
 int main(void){
 
-    printf("The controller is STARTED!\n");
+    int i=1;
+
+    printf("The allarm task is STARTED!\n");
  	signal(SIGINT, endme);
 
     if(!(asyncTask = rt_task_init(nam2num("ALLARM"),1,STACK_SIZE,0))){
@@ -35,7 +37,7 @@ int main(void){
     while(keep_on_running){
 
         rt_sem_wait(allarm);
-        printf("ALLARM \n");
+        printf("%d) -->ALLARM \n",i++);
 
     }
 

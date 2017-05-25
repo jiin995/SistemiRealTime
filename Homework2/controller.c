@@ -229,7 +229,7 @@ int main(void)
 	sensor = rtai_malloc(SEN_SHM, sizeof(int));
 	actuator = rtai_malloc(ACT_SHM, sizeof(int));
 	reference = rtai_malloc(REFSENS, sizeof(int));
-	shm=rtai_kmalloc(KTS_SHM,sizeof(RT_TASK *));
+	shm=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
 	
 
 	(*reference) = 110;
