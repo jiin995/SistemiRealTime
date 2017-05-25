@@ -11,7 +11,9 @@
 #include <rtai_sched.h>
 #include "parameters.h"
 
+static 	RT_TASK **shm;
 static RT_TASK controller_k;
+
 static MBX  * actuate_mbx;
 static MBX  * filter_mbx;
 
@@ -23,7 +25,14 @@ static void control_loop(int in){
 	int error = 0;
 	unsigned int control_action = 0;
 
+	printk(KERN_INFO "Mi sospendo %d   %d",*shm,&controller_k);
+	rt_task_suspend(&controller_k);
+	printk(KERN_INFO "Ripreso");
+
+
 	while (1){
+			printk(KERN_INFO "2");
+
 		// receiving the average plant state from the filter
 		if(!rt_mbx_receive(filter_mbx,&plant_state,sizeof(int))){
 
@@ -32,10 +41,10 @@ static void control_loop(int in){
 			// computation of the control law
 			error = (*reference) - plant_state;
 
-			//if (error > 0) control_action = 1;
-			//else if (error < 0) control_action = 2;
-			//else control_action = 3;
-			control_action=4;
+			if (error > 0) control_action = 1;
+			else if (error < 0) control_action = 2;
+			else control_action = 3;
+			//control_action=4;
 			// sending the control action to the actuator
 			if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)
 				printk(KERN_INFO"[Controller_Kernel] --> Error while send the control action to actuate \n");
@@ -69,6 +78,10 @@ int init_module(void){
     
     rt_task_init(&controller_k, control_loop, 0, STACK_SIZE, TASK_PRIORITY, 1, 0);
 
+
+	shm=rtai_kmalloc(KTS_SHM,sizeof(RT_TASK *));
+	*shm=&controller_k;
+
     RTIME   sampl_interv = nano2count(CNTRL_TIME);
 
 	filter_mbx=rt_typed_named_mbx_init(FILTER_MBX,sizeof(int),FIFO_Q);
@@ -81,10 +94,12 @@ int init_module(void){
 
 void cleanup_module(void){
 
-    stop_rt_timer();
+ //   stop_rt_timer();
 
     rt_task_delete(&controller_k);
+	rtai_kfree(KTS_SHM);
 
-    rt_mbx_delete(actuate_mbx);
-    rt_mbx_delete (filter_mbx);
+
+//  rt_mbx_delete(actuate_mbx);
+//  rt_mbx_delete (filter_mbx);
 }

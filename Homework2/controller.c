@@ -44,6 +44,9 @@ int tail = 0;
 int avg = 0;
 int control =0;
 
+RT_TASK **shm;
+
+
 SEM* space_avail;
 SEM* meas_avail;
 SEM* allarm;
@@ -131,6 +134,10 @@ static void * control_loop(void * par) {
 	rt_task_make_periodic(control_Task, expected, BUF_SIZE*sampl_interv);
 	rt_make_hard_real_time();
 
+	shm=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
+   // printf("%d \n",*shm);
+    rt_task_resume(*shm);
+
 	unsigned int plant_state = 0;
 	int error = 0;
 	unsigned int control_action = 0;
@@ -183,8 +190,10 @@ static void * actuator_loop(void * par) {
 		//se ricevo dal controller in modalita' kernel
 		if(rt_mbx_receive_if(actuate_mbx,&control_action_k,sizeof(int))==0){
 			if(c_task){	//ho ricevuto dai due controller
-				if(control_action!=control_action_k)
+				if(control_action!=control_action_k){
 					rt_sem_signal(allarm); //i due controller mi danno valori diversi
+					control_action=0;
+				}
 			}else {
 				control_action=control_action_k;} //ho ricevuto solo dal task in modalita' kernel
 		}else if(!c_task) // non ho ricevuto informazioni da nessuno dei due task
@@ -220,6 +229,8 @@ int main(void)
 	sensor = rtai_malloc(SEN_SHM, sizeof(int));
 	actuator = rtai_malloc(ACT_SHM, sizeof(int));
 	reference = rtai_malloc(REFSENS, sizeof(int));
+	shm=rtai_kmalloc(KTS_SHM,sizeof(RT_TASK *));
+	
 
 	(*reference) = 110;
 
@@ -256,6 +267,8 @@ int main(void)
 	rt_shm_free(SEN_SHM);
 	rt_shm_free(ACT_SHM);
 	rt_shm_free(REFSENS);
+	rt_mbx_delete(actuate_mbx);
+  	rt_mbx_delete (filter_mbx);
 	rt_task_delete(main_Task);
  	printf("The controller is STOPPED\n");
 	return 0;

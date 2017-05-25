@@ -19,7 +19,7 @@ static int keep_on_running = 1;
 
 static void endme(int dummy) {keep_on_running = 0;}
 
-int main(){
+int main(void){
 
     printf("The controller is STARTED!\n");
  	signal(SIGINT, endme);
