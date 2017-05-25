@@ -44,8 +44,7 @@ int tail = 0;
 int avg = 0;
 int control =0;
 
-RT_TASK **shm;
-
+RT_TASK **shm_c_k;
 
 SEM* space_avail;
 SEM* meas_avail;
@@ -134,9 +133,7 @@ static void * control_loop(void * par) {
 	rt_task_make_periodic(control_Task, expected, BUF_SIZE*sampl_interv);
 	rt_make_hard_real_time();
 
-	shm=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
-   // printf("%d \n",*shm);
-    rt_task_resume(*shm);
+    rt_task_resume(*shm_c_k);
 
 	unsigned int plant_state = 0;
 	int error = 0;
@@ -229,8 +226,7 @@ int main(void)
 	sensor = rtai_malloc(SEN_SHM, sizeof(int));
 	actuator = rtai_malloc(ACT_SHM, sizeof(int));
 	reference = rtai_malloc(REFSENS, sizeof(int));
-	shm=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
-	
+	shm_c_k=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
 
 	(*reference) = 110;
 

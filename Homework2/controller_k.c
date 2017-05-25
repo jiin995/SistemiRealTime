@@ -11,7 +11,7 @@
 #include <rtai_sched.h>
 #include "parameters.h"
 
-static RT_TASK **shm; // utilizzato per condividere il puntatore al task in modo tale che possa essere ripreso quando il controllore e' pronto cosicche' possiamo evitare allarmi dovuti alla non sync
+static RT_TASK **shm_c_k; // utilizzato per condividere il puntatore al task in modo tale che possa essere ripreso quando il controllore e' pronto cosicche' possiamo evitare allarmi dovuti alla non sync
 static RT_TASK controller_k;
 
 static MBX  * actuate_mbx;
@@ -25,7 +25,7 @@ static void control_loop(int in){
 	int error = 0;
 	unsigned int control_action = 0;
 
-	printk(KERN_INFO "Mi sospendo %d   %d",*shm,&controller_k);
+	printk(KERN_INFO "Mi sospendo %d   %d",*shm_c_k,&controller_k);
 	rt_task_suspend(&controller_k);
 	printk(KERN_INFO "Ripreso");
 
@@ -74,8 +74,8 @@ int init_module(void){
     
     rt_task_init(&controller_k, control_loop, 0, STACK_SIZE, TASK_PRIORITY, 1, 0);
 
-	shm=rtai_kmalloc(KTS_SHM,sizeof(RT_TASK *));
-	*shm=&controller_k;
+	shm_c_k=rtai_kmalloc(KTS_SHM,sizeof(RT_TASK *));
+	*shm_c_k=&controller_k;
 
     RTIME   sampl_interv = nano2count(CNTRL_TIME);
 
