@@ -11,8 +11,8 @@
 
 #define SEN_SHM 121111
 #define ACT_SHM 112112
-#define KTS_SHM 212211
 #define REFSENS 111213
+#define KTS_SHM 212211 //usata per passare il riferimento del task livello kernel in modo da effettuare la resume
 
 
 #define ALLARM_SEM "ALL_SEM"
@@ -22,4 +22,16 @@
 #define SPACE_SEM 1234444
 #define MEAS_SEM 1234445
 
+#define ACTIVE 1
+#define FAILED -1
+
+typedef struct  {
+    int status_controller_u;
+    int status_controller_k;
+    int buffer[BUF_SIZE];
+    int control_u;
+    int control_k;
+    int actuate;
+
+}status_struct;
 

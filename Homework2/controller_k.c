@@ -17,6 +17,10 @@ static RT_TASK controller_k;
 static MBX  * actuate_mbx;
 static MBX  * filter_mbx;
 
+static int suspend = -1;
+module_param(suspend, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(suspend, "if set 1 the task not suspend");
+
 static int* reference;
 
 static void control_loop(int in){
@@ -25,9 +29,11 @@ static void control_loop(int in){
 	int error = 0;
 	unsigned int control_action = 0;
 
-	printk(KERN_INFO "Mi sospendo %d   %d",*shm_c_k,&controller_k);
-	rt_task_suspend(&controller_k);
-	printk(KERN_INFO "Ripreso");
+	if(suspend!=1){
+		printk(KERN_INFO "Mi sospendo %d   %d",*shm_c_k,&controller_k);
+		rt_task_suspend(&controller_k);
+		printk(KERN_INFO "Ripreso");
+	}
 
 	while (1){
 		// receiving the average plant state from the filter

@@ -37,12 +37,15 @@ int* sensor;
 int* actuator;
 int* reference;
 
+
 int buffer[BUF_SIZE];
 int head = 0;
 int tail = 0;
 
 int avg = 0;
 int control =0;
+
+status_struct * status;
 
 RT_TASK **shm_c_k;
 
@@ -180,7 +183,7 @@ static void * actuator_loop(void * par) {
 		int c_task=1;
 
 		// receiving the control action from the controller
-		if(!rt_receive(0, &control_action))
+		if(!rt_receive_if(0, &control_action))
 			//il task controll a livello utente e' terminato
 			c_task=0;
 		
@@ -192,15 +195,17 @@ static void * actuator_loop(void * par) {
 					control_action=0;
 				}
 			}else {
-				control_action=control_action_k;} //ho ricevuto solo dal task in modalita' kernel
+				control_action=control_action_k;
+			} //ho ricevuto solo dal task in modalita' kernel
 		}else if(!c_task) // non ho ricevuto informazioni da nessuno dei due task
-				control_action=0;
+				control_action=4;
 		
 		
 		switch (control_action) {
 			case 1: control = 1; break;
 			case 2:	control = -1; break;
 			case 3:	control = 0; break;
+			case 4: control = -2; break;
 			default: control = 0;
 		}
 		
@@ -255,6 +260,9 @@ int main(void)
 
 
 	while (keep_on_running) {
+		if((*actuator)==-2){
+			printf("No Controller running\n");
+		}
 		printf("Control: %d\n",(*actuator));
 		rt_sleep(10000000);
 	}

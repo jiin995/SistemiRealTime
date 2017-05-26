@@ -47,6 +47,8 @@ static void * main_loop(void * par) {
 	int when_to_decrease = 1 + (int)( 10.0 * rand() / ( RAND_MAX + 1.0 ));
 	while (keep_on_running)
 	{
+		if((*actuator)==-2)
+			*actuator==0;
 		if (count%when_to_decrease==0) {
 			if ((*sensor)>0) (*sensor)--; // the sensed data smoothly decreases...
 			when_to_decrease = 1 + (int)( 10.0 * rand() / ( RAND_MAX + 1.0 ));
