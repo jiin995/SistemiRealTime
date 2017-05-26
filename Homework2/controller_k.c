@@ -30,9 +30,9 @@ static void control_loop(int in){
 	unsigned int control_action = 0;
 
 	if(suspend!=1){
-		printk(KERN_INFO "Mi sospendo %d   %d",*shm_c_k,&controller_k);
+		printk(KERN_INFO "Suspend %d   %d",*shm_c_k,&controller_k);
 		rt_task_suspend(&controller_k);
-		printk(KERN_INFO "Ripreso");
+		printk(KERN_INFO "Resume");
 	}
 
 	while (1){
@@ -48,17 +48,15 @@ static void control_loop(int in){
 			else if (error < 0) control_action = 2;
 			else control_action = 3;
 			//control_action=4;
-			// sending the control action to the actuator
-			if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)
+			// sending the control action to the actuator		
+		}else{
+			printk(KERN_INFO"[Controller_Kernel] --> Not received message from filter  \n");
+			control_action=0;
+		}
+		if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)
 				printk(KERN_INFO"[Controller_Kernel] --> Error while send the control action to actuate \n");
 			else
-				printk(KERN_INFO"[Controller_Kernel] --> Control_action %d \n",control_action);			
-		}else{
-			control_action=0;
-			if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)
-					printk(KERN_INFO"[Controller_Kernel] --> Error while send the control action to actuate \n");
-
-		}
+				printk(KERN_INFO"[Controller_Kernel] --> Control_action %d \n",control_action);	
 		rt_task_wait_period();
     }
 
