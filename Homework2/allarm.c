@@ -12,7 +12,7 @@
 #include <signal.h>
 #include "parameters.h"
 
-static RT_TASK* asyncTask;
+static RT_TASK* allarmTask;
 
 static int keep_on_running = 1;
 
@@ -26,7 +26,7 @@ int main(void){
     printf("The allarm task is STARTED!\n");
  	signal(SIGINT, endme);
 
-    if(!(asyncTask = rt_task_init(nam2num("ALLARM"),1,STACK_SIZE,0))){
+    if(!(allarmTask = rt_task_init(nam2num("ALLARM"),1,STACK_SIZE,0))){
 	    	printf("failed creating rt task\n");
 		    exit(-1);
 	}

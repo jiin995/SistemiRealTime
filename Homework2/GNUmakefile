@@ -13,7 +13,7 @@ LINUX_DIR = $(shell rtai-config --linux-dir)
 
 ifneq ($(findstring 3.14.,$(shell rtai-config --linux-version 2>/dev/null)),)
 
-all:plant test controller reference allarm
+all:plant test controller reference allarm polling diag
 	@if test -e $(LINUX_DIR)/Module.symvers; then mv -f $(LINUX_DIR)/Module.symvers $(LINUX_DIR)/__Module.symvers; fi; if test -e $(LINUX_DIR)/vmlinux; then mv -f $(LINUX_DIR)/vmlinux $(LINUX_DIR)/__vmlinux; fi; \
 	$(MAKE) -C $(LINUX_DIR) CC=$(CC) SUBDIRS=$$PWD V=$(V) modules \
 	&& if test -e $(LINUX_DIR)/__Module.symvers; then mv -f $(LINUX_DIR)/__Module.symvers $(LINUX_DIR)/Module.symvers; fi && if test -e $(LINUX_DIR)/__vmlinux; then mv -f $(LINUX_DIR)/__vmlinux $(LINUX_DIR)/vmlinux; fi
@@ -38,13 +38,18 @@ controller: controller.c
 allarm:allarm.c
 	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
 
+polling:ps.c
+	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
+
+diag:diag.c
+	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
 
 
 else
 
 MODULE_CFLAGS = $(shell rtai-config --module-cflags)
 
-all: controller_k.o plant reference controller test allarm
+all: controller_k.o plant reference controller test allarm polling diag
 
 controller_k.o: controller_k.c
 	$(CC) $(MODULE_CFLAGS) -c $<
@@ -64,6 +69,12 @@ controller: controller.c
 	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
 
 allarm:allarm.c
+	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
+
+polling:ps.c
+	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
+
+diag:diag.c
 	$(CC) $(LXRT_CFLAGS) -o $@ $< $(LXRT_LDFLAGS)
 
 

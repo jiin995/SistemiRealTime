@@ -22,12 +22,15 @@ static RT_TASK *read_Task;
 static RT_TASK *filter_Task;
 static RT_TASK *control_Task;
 static RT_TASK *write_Task;
+static RT_TASK *gather_Task ;
 static int keep_on_running = 1;
 
 static pthread_t read_thread;
 static pthread_t filter_thread;
 static pthread_t control_thread;
 static pthread_t write_thread;
+static pthread_t gather_thread;
+
 
 static RTIME sampl_interv;   //Periodo di cui i task sono periodici
 
@@ -36,7 +39,6 @@ static void endme(int dummy) {keep_on_running = 0;}
 int* sensor;
 int* actuator;
 int* reference;
-
 
 int buffer[BUF_SIZE];
 int head = 0;
@@ -52,9 +54,14 @@ RT_TASK **shm_c_k;
 SEM* space_avail;
 SEM* meas_avail;
 SEM* allarm;
+SEM* mutex_acquire;
+SEM* mutex_filter;
 
 MBX* filter_mbx;
 MBX* actuate_mbx;
+MBX* request_mbx;
+MBX* status_mbx;
+
 
 static void * acquire_loop(void * par) {
 	
@@ -70,10 +77,13 @@ static void * acquire_loop(void * par) {
 	while (keep_on_running)
 	{
 		// DATA ACQUISITION FROM PLANT
+		rt_sem_wait(mutex_acquire);
 		rt_sem_wait(space_avail);
 		
 		buffer[head] = (*sensor);
 		head = (head+1) % BUF_SIZE;
+
+		rt_sem_signal(mutex_acquire);
 		rt_sem_signal(meas_avail);
 
 		rt_task_wait_period();
@@ -98,11 +108,13 @@ static void * filter_loop(void * par) {
 	while (keep_on_running)
 	{
 		// FILTERING (average)
-		rt_sem_wait(meas_avail);
+		rt_sem_wait(mutex_filter);
+		rt_sem_wait(meas_avail); 
 
 		sum += buffer[tail];
 		tail = (tail+1) % BUF_SIZE;
-	
+
+		rt_sem_signal(mutex_filter);
 		rt_sem_signal(space_avail);
 		
 		cnt--;
@@ -165,7 +177,7 @@ static void * control_loop(void * par) {
 
 static void * actuator_loop(void * par) {
 
-	if (!(write_Task = rt_task_init_schmod(nam2num("WRITE"), 4, 0, 0, SCHED_FIFO, CPUMAP))) {
+	if (!(write_Task = rt_task_init_schmod(nam2num("WRITE1"), 4, 0, 0, SCHED_FIFO, CPUMAP))) {
 		printf("CANNOT INIT ACTUATOR TASK\n");
 		exit(1);
 	}
@@ -183,12 +195,21 @@ static void * actuator_loop(void * par) {
 		int c_task=1;
 
 		// receiving the control action from the controller
-		if(!rt_receive_if(0, &control_action))
-			//il task controll a livello utente e' terminato
+		if(!rt_receive_if(0, &control_action)){
+			//il task controll a livello utente e' terminato o non ha inviato in tempo il segnale di controllo
 			c_task=0;
-		
+			status->status_controller_u=FAILED;
+			status->control_u=FAILED;
+		}
+		else{
+			status->status_controller_u=ACTIVE;
+			status->control_u=control_action;
+		}
 		//se ricevo dal controller in modalita' kernel
 		if(rt_mbx_receive_if(actuate_mbx,&control_action_k,sizeof(int))==0){
+			status->status_controller_k=ACTIVE;
+			status->control_k=control_action_k;
+
 			if(c_task){	//ho ricevuto dai due controller
 				if(control_action!=control_action_k){
 					rt_sem_signal(allarm); //i due controller mi danno valori diversi
@@ -197,9 +218,13 @@ static void * actuator_loop(void * par) {
 			}else {
 				control_action=control_action_k;
 			} //ho ricevuto solo dal task in modalita' kernel
-		}else if(!c_task) // non ho ricevuto informazioni da nessuno dei due task
+		}else{ //non ho ricevuto dal task in modalita' kernel
+			status->status_controller_k=FAILED;
+			status->control_k=FAILED;
+
+			 if(!c_task) // non ho ricevuto informazioni da nessuno dei due task
 				control_action=4;
-		
+		}
 		
 		switch (control_action) {
 			case 1: control = 1; break;
@@ -208,6 +233,8 @@ static void * actuator_loop(void * par) {
 			case 4: control = -2; break;
 			default: control = 0;
 		}
+
+		status->actuate=control;
 		
 		(*actuator) = control;
 
@@ -216,6 +243,38 @@ static void * actuator_loop(void * par) {
 	rt_task_delete(write_Task);
 	return 0;
 }
+
+static void * gather_loop(void * par) {
+
+	if (!(gather_Task = rt_task_init_schmod(nam2num("GATHER"), 5, 0, 0, SCHED_FIFO, CPUMAP))) {
+		printf("CANNOT INIT GATHER TASK\n");
+		exit(1);
+	}
+
+	int req;
+
+	while(keep_on_running){
+
+		if(rt_mbx_receive(request_mbx,&req,sizeof(int))==0){
+
+			rt_sem_wait(mutex_acquire); //blocco acquire
+			rt_sem_wait(mutex_filter);	//blocco filter
+
+   			//aggiorno il buffer prima di inviarlo 
+				int i=0;
+				for( i=0;i<BUF_SIZE;i++){
+					status->buffer[i]=buffer[i];
+				}
+
+			rt_sem_signal(mutex_acquire);
+			rt_sem_signal(mutex_filter);
+			rt_mbx_send_if(status_mbx,status,sizeof(status_struct));
+
+		}
+		
+	}
+}
+
 
 int main(void)
 {
@@ -232,16 +291,25 @@ int main(void)
 	actuator = rtai_malloc(ACT_SHM, sizeof(int));
 	reference = rtai_malloc(REFSENS, sizeof(int));
 	shm_c_k=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
+	status=rtai_malloc(STATUS_SHM,sizeof(status_struct));
 
 	(*reference) = 110;
 
 	//Init message box for send data from and to controll kernel module
 	filter_mbx=rt_typed_named_mbx_init(FILTER_MBX,sizeof(int),FIFO_Q);
     actuate_mbx=rt_typed_named_mbx_init(ACTUATE_MBX,sizeof(int),FIFO_Q);
+	request_mbx=rt_typed_named_mbx_init(REQUEST_MBX,sizeof(int),FIFO_Q);
+	status_mbx=rt_typed_named_mbx_init(STATUS_MBX,sizeof(status_struct),FIFO_Q);
+
+
 
 	space_avail = rt_typed_sem_init(SPACE_SEM, BUF_SIZE, CNT_SEM | PRIO_Q);
 	meas_avail = rt_typed_sem_init(MEAS_SEM, 0, CNT_SEM | PRIO_Q);
+
 	allarm=rt_typed_named_sem_init(ALLARM_SEM,0,BIN_SEM|PRIO_Q);
+	mutex_filter = rt_typed_sem_init(FIL_MUTEX, 1, BIN_SEM | PRIO_Q);
+	mutex_acquire  = rt_typed_sem_init(ACQ_MUTEX, 1, BIN_SEM | PRIO_Q);
+
 	
 	if (rt_is_hard_timer_running()) {
 		printf("Skip hard real_timer setting...\n");
@@ -257,6 +325,7 @@ int main(void)
 	pthread_create(&filter_thread, NULL, filter_loop, NULL);
 	pthread_create(&control_thread, NULL, control_loop, NULL);
 	pthread_create(&write_thread, NULL, actuator_loop, NULL);
+	pthread_create(&gather_thread, NULL, gather_loop, NULL);
 
 
 	while (keep_on_running) {

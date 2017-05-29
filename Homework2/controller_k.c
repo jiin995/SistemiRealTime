@@ -96,6 +96,8 @@ void cleanup_module(void){
  //   stop_rt_timer();
  	rt_task_delete(&controller_k);
 
+	printk(KERN_INFO"[Controller_Kernel] --> Module removed");
+
 	rtai_kfree(KTS_SHM);
 	rt_mbx_delete(actuate_mbx);
 	rt_mbx_delete (filter_mbx);
