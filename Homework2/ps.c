@@ -32,7 +32,7 @@ static void endme(int dummy) {keep_on_running = 0;}
 static void polling_loop(long p){
 
 
-    if (!(psTask = rt_task_init_schmod(nam2num("POLLIN"), 10, 0, 0, SCHED_FIFO, 0xF))) {
+    if (!(psTask = rt_task_init_schmod(nam2num("POLLIN"), 0, 0, 0, SCHED_FIFO, 0xF))) {
 	    	printf("failed creating rt task\n");
 		    exit(-1);
 	}
@@ -55,7 +55,7 @@ static void polling_loop(long p){
                 *req=0;           
             }else
                 *op=0;
-                
+
         rt_sem_signal(mutex);
 
         rt_task_wait_period();
@@ -94,7 +94,7 @@ int main(void){
 		start_rt_timer(0);
 	}
 
-    sampl_interv = nano2count(CNTRL_TIME);//BUF_SIZE);
+    sampl_interv = nano2count(CNTRL_TIME/BUF_SIZE);
 
     pthread_create(&polling_thread, NULL, polling_loop, NULL);
 
@@ -103,11 +103,11 @@ int main(void){
             printf("[Polling Server] --> Error while send the request to Gather task \n");
         }
         else if(*op==1){
-            printf("[Polling Server] --> Request inoltred to Gather task");
+            printf("[Polling Server] --> Request inoltred to Gather task \n");
         }
 
-       printf("active\n");
-
+       //printf("active\n");
+       	rt_sleep(10000000);
     }
     
     return 0;

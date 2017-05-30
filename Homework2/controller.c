@@ -56,6 +56,7 @@ SEM* meas_avail;
 SEM* allarm;
 SEM* mutex_acquire;
 SEM* mutex_filter;
+SEM* run_controller;
 
 MBX* filter_mbx;
 MBX* actuate_mbx;
@@ -290,8 +291,8 @@ int main(void)
 	sensor = rtai_malloc(SEN_SHM, sizeof(int));
 	actuator = rtai_malloc(ACT_SHM, sizeof(int));
 	reference = rtai_malloc(REFSENS, sizeof(int));
-	shm_c_k=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
-	status=rtai_malloc(STATUS_SHM,sizeof(status_struct));
+	shm_c_k=rtai_malloc(KTS_SHM,sizeof(RT_TASK *)); //usata per effettuare resume sul controller kernel
+	status=rtai_malloc(STATUS_SHM,sizeof(status_struct)); //usata per salvare lo stato tra gather e gli altri thread
 
 	(*reference) = 110;
 
@@ -299,7 +300,7 @@ int main(void)
 	filter_mbx=rt_typed_named_mbx_init(FILTER_MBX,sizeof(int),FIFO_Q);
     actuate_mbx=rt_typed_named_mbx_init(ACTUATE_MBX,sizeof(int),FIFO_Q);
 	request_mbx=rt_typed_named_mbx_init(REQUEST_MBX,sizeof(int),FIFO_Q);
-	status_mbx=rt_typed_named_mbx_init(STATUS_MBX,sizeof(status_struct),FIFO_Q);
+	status_mbx=rt_typed_named_mbx_init(STATUS_MBX,sizeof(status_struct),FIFO_Q); //mailbox per inviare lo stato dal gather al diag
 
 
 
@@ -307,9 +308,10 @@ int main(void)
 	meas_avail = rt_typed_sem_init(MEAS_SEM, 0, CNT_SEM | PRIO_Q);
 
 	allarm=rt_typed_named_sem_init(ALLARM_SEM,0,BIN_SEM|PRIO_Q);
-	mutex_filter = rt_typed_sem_init(FIL_MUTEX, 1, BIN_SEM | PRIO_Q);
-	mutex_acquire  = rt_typed_sem_init(ACQ_MUTEX, 1, BIN_SEM | PRIO_Q);
+	mutex_filter = rt_typed_sem_init(FIL_MUTEX, 1, BIN_SEM | PRIO_Q); //per bloccare il filter quando gather deve aggiornare lo stato
+	mutex_acquire  = rt_typed_sem_init(ACQ_MUTEX, 1, BIN_SEM | PRIO_Q); //per bloccare l'acquire quando gather deve aggiornare lo stato
 
+	run_controller = rt_typed_named_sem_init(CON_MUTEX, 1, BIN_SEM | PRIO_Q);
 	
 	if (rt_is_hard_timer_running()) {
 		printf("Skip hard real_timer setting...\n");
@@ -336,12 +338,25 @@ int main(void)
 		rt_sleep(10000000);
 	}
 
-    	stop_rt_timer();
+    stop_rt_timer();
 	rt_shm_free(SEN_SHM);
 	rt_shm_free(ACT_SHM);
 	rt_shm_free(REFSENS);
+	rt_shm_free(KTS_SHM);
+	rt_shm_free(STATUS_SHM); 
+
+	
 	rt_mbx_delete(actuate_mbx);
   	rt_mbx_delete (filter_mbx);
+	rt_mbx_delete(request_mbx);
+	rt_mbx_delete(status_mbx);
+	
+	rt_named_sem_delete(space_avail);
+	rt_named_sem_delete(meas_avail);
+	rt_named_sem_delete(allarm);
+	rt_named_sem_delete(mutex_filter);
+	rt_named_sem_delete(mutex_acquire);
+
 	rt_task_delete(main_Task);
  	printf("The controller is STOPPED\n");
 	return 0;

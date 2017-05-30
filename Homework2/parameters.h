@@ -16,7 +16,6 @@
 #define STATUS_SHM 213321 //usata per condividere lo stato dell'applicazione
 #define REQ_SHM    133321
 
-#define ALLARM_SEM "ALL_SEM" //semaforo per inviare l'allarme al task allarm
 
 #define ACTUATE_MBX "ACT_MBX"
 #define FILTER_MBX "FIL_MBX"
@@ -27,7 +26,9 @@
 #define MEAS_SEM 1234445
 #define ACQ_MUTEX 323232
 #define FIL_MUTEX 344344
+#define ALLARM_SEM "ALL_SEM" //semaforo per inviare l'allarme al task allarm
 #define MUT_P     "MUTEX"
+#define CON_MUTEX "CON_MUTEX"
 
 
 #define ACTIVE 1
