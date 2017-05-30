@@ -37,8 +37,8 @@ static void control_loop(int in){
 
 	while (1){
 		// receiving the average plant state from the filter
-		if(!rt_mbx_receive(filter_mbx,&plant_state,sizeof(int))){
-
+		if(!rt_mbx_receive(filter_mbx,&plant_state,sizeof(int))){ //non uso la receive if perche' se non arriva in tempo il msg e' actuator a decidere cosa fare 
+			//0 ho ricevuto il messaggio 
      	   printk(KERN_INFO"[Controller_Kernel] --> Plant_State %d \n",plant_state);
 
 			// computation of the control law
@@ -50,7 +50,7 @@ static void control_loop(int in){
 			//control_action=4;
 			// sending the control action to the actuator		
 		}else{
-			printk(KERN_INFO"[Controller_Kernel] --> Not received message from filter  \n");
+			printk(KERN_INFO"[Controller_Kernel] --> Error while receiving message from filter  \n");
 			control_action=0;
 		}
 		if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)

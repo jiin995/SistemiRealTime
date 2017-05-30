@@ -125,7 +125,7 @@ static void * filter_loop(void * par) {
 			avg = sum/BUF_SIZE;
 			sum = 0;
 			// sends the average measure to the controller
-			rt_send(control_Task, avg);	
+			rt_send_if(control_Task, avg);	//se si blocca il controll task e uso la send normale anche filter si blocca e il controller liv kernel non continua la sua esecuzione
 			// sends the average measure to the controller
 			//uso la if in modo da evitare che il task si blocchi qual'ora la mailbox sia piana
 			rt_mbx_send_if(filter_mbx,&avg,sizeof(int ));
@@ -156,9 +156,9 @@ static void * control_loop(void * par) {
 	unsigned int control_action = 0;
 	while (keep_on_running)
 	{
+		rt_sem_wait(run_controller);
 		// receiving the average plant state from the filter
-		rt_receive(0, &plant_state);
-
+		rt_receive(0, &plant_state); 
 		// computation of the control law
 		error = (*reference) - plant_state;
 
@@ -168,6 +168,7 @@ static void * control_loop(void * par) {
 
 		// sending the control action to the actuator
 		rt_send(write_Task, control_action);
+		rt_sem_signal(run_controller);
 
 		rt_task_wait_period();
 
@@ -208,7 +209,7 @@ static void * actuator_loop(void * par) {
 		}
 		//se ricevo dal controller in modalita' kernel
 		if(rt_mbx_receive_if(actuate_mbx,&control_action_k,sizeof(int))==0){
-			status->status_controller_k=ACTIVE;
+			status->status_controller_k=ACTIVE; //ho ricevuto un messaggio dal task di livello kernel 
 			status->control_k=control_action_k;
 
 			if(c_task){	//ho ricevuto dai due controller
@@ -269,6 +270,7 @@ static void * gather_loop(void * par) {
 
 			rt_sem_signal(mutex_acquire);
 			rt_sem_signal(mutex_filter);
+
 			rt_mbx_send_if(status_mbx,status,sizeof(status_struct));
 
 		}
@@ -356,6 +358,8 @@ int main(void)
 	rt_named_sem_delete(allarm);
 	rt_named_sem_delete(mutex_filter);
 	rt_named_sem_delete(mutex_acquire);
+	rt_named_sem_delete(run_controller);
+
 
 	rt_task_delete(main_Task);
  	printf("The controller is STOPPED\n");

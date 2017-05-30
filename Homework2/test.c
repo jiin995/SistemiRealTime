@@ -35,9 +35,23 @@ int main(){
 
     //MBX* actuate_mbx=rt_typed_named_mbx_init(ACTUATE_MBX,sizeof(int),FIFO_Q);
 
-    shm=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
-    printf("%d \n",*shm);
-    rt_task_resume(*shm);
+   // shm=rtai_malloc(KTS_SHM,sizeof(RT_TASK *));
+    //printf("%d \n",*shm);
+    //rt_task_resume(*shm);
+
+  	SEM* run_controller = rt_typed_named_sem_init(CON_MUTEX, 1, BIN_SEM | PRIO_Q);
+
+    int i=1;
+
+    while(i!=0){
+        scanf("%d",&i);
+        rt_sem_wait(run_controller);
+            printf("BLOCCATO \n");
+            scanf("%d",&i);
+        rt_sem_signal(run_controller);
+            printf("SBLOCCATO \n");
+
+    }
 
     rt_task_delete(asyncTask);
 
