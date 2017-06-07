@@ -197,7 +197,8 @@ static void * actuator_loop(void * par) {
 		int c_task=1;
 
 		// receiving the control action from the controller
-		if(!rt_receive_if(0, &control_action)){
+		//if(!rt_receive_if(0, &control_action)){
+		if(!rt_receive_until(0,&control_action,sampl_interv)){
 			//il task controll a livello utente e' terminato o non ha inviato in tempo il segnale di controllo
 			c_task=0;
 			status->status_controller_u=FAILED;
@@ -209,6 +210,7 @@ static void * actuator_loop(void * par) {
 		}
 		//se ricevo dal controller in modalita' kernel
 		if(rt_mbx_receive_if(actuate_mbx,&control_action_k,sizeof(int))==0){
+		//if(rt_mbx_receive_until(actuate_mbx,&control_action_k,sizeof(int),sampl_interv)!=0){
 			status->status_controller_k=ACTIVE; //ho ricevuto un messaggio dal task di livello kernel 
 			status->control_k=control_action_k;
 

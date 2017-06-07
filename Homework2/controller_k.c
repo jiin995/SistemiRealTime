@@ -16,6 +16,7 @@ static RT_TASK controller_k;
 
 static MBX  * actuate_mbx;
 static MBX  * filter_mbx;
+static SEM * stop_controller;
 
 static int suspend = -1;
 module_param(suspend, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -36,6 +37,7 @@ static void control_loop(int in){
 	}
 
 	while (1){
+		rt_sem_wait(stop_controller);
 		// receiving the average plant state from the filter
 		if(!rt_mbx_receive(filter_mbx,&plant_state,sizeof(int))){ //non uso la receive if perche' se non arriva in tempo il msg e' actuator a decidere cosa fare 
 			//0 ho ricevuto il messaggio 
@@ -56,7 +58,9 @@ static void control_loop(int in){
 		if(rt_mbx_send_if(actuate_mbx,&control_action,sizeof(int))!=0)
 				printk(KERN_INFO"[Controller_Kernel] --> Error while send the control action to actuate \n");
 			else
-				printk(KERN_INFO"[Controller_Kernel] --> Control_action %d \n",control_action);	
+				printk(KERN_INFO"[Controller_Kernel] --> Control_action %d \n",control_action);
+
+		rt_sem_signal(stop_controller);	
 		rt_task_wait_period();
     }
 
@@ -85,6 +89,9 @@ int init_module(void){
 
 	filter_mbx=rt_typed_named_mbx_init(FILTER_MBX,sizeof(int),FIFO_Q);
     actuate_mbx=rt_typed_named_mbx_init(ACTUATE_MBX,sizeof(int),FIFO_Q);
+
+	stop_controller=rt_typed_named_sem_init(STCK_SEM, 1, BIN_SEM | PRIO_Q);
+
 
    	rt_task_make_periodic(&controller_k, rt_get_time() + sampl_interv, sampl_interv*BUF_SIZE);
 

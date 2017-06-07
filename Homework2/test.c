@@ -11,11 +11,9 @@
 #include <rtai_msg.h>
 #include <rtai_mbx.h>
 #include <sys/io.h>
-#include <signal.h>
 #include "parameters.h"
 
 static RT_TASK* asyncTask;
-RT_TASK **shm;
 
 
 int main(){
@@ -39,18 +37,65 @@ int main(){
     //printf("%d \n",*shm);
     //rt_task_resume(*shm);
 
-  	SEM* run_controller = rt_typed_named_sem_init(CON_MUTEX, 1, BIN_SEM | PRIO_Q);
+  	SEM* stop_controller = rt_typed_named_sem_init(CON_MUTEX, 1, BIN_SEM | PRIO_Q);
+    SEM *	stop_controller_k=rt_typed_named_sem_init(STCK_SEM, 1, BIN_SEM | PRIO_Q);
+    RT_TASK ** shm_c_k=rtai_malloc(KTS_SHM,sizeof(RT_TASK *)); //usata per effettuare resume sul controller kernel
+
 
     int i=1;
 
     while(i!=0){
-        scanf("%d",&i);
-        rt_sem_wait(run_controller);
-            printf("BLOCCATO \n");
-            scanf("%d",&i);
-        rt_sem_signal(run_controller);
-            printf("SBLOCCATO \n");
 
+        printf("[Tester ]\n1) Blocca Task livello utente\n");
+        printf("2) Sblocca Task livello utente\n");
+        printf("3) Blocca Task livello kernel\n");
+        printf("4) Sblocca Task livello kernel\n");
+        printf("5) Risveglia Task Kernel \n");
+        printf("0) Termina \n");
+
+
+        scanf("%d",&i);
+        switch(i){
+       
+            case 1:{
+                      rt_sem_wait(stop_controller);
+                      printf("[Tester ]--> Bloccato Task livello utente\n");
+                      break;
+            }
+
+            case 2:{
+                      rt_sem_signal(stop_controller);
+                      printf("[Tester ]--> Sbloccato Task livello utente\n");
+                      break;
+            }
+
+            case 3:{
+                      rt_sem_wait(stop_controller_k);
+                      printf("[Tester ]--> Bloccato Task livello kernel\n");
+                      break;
+            }
+
+            case 4:{
+                      rt_sem_signal(stop_controller_k);
+                      printf("[Tester ]--> Sbloccato Task livello kernel\n");
+                      break;
+            }
+            case 5:{
+                      rt_task_resume(*shm_c_k);
+                      printf("[Tester ]--> Risvegliato Task livello kernel\n");
+                      break;
+            }
+            case 0:{
+                    printf("[Tester]--> Terminato\n");
+                    break;
+            }
+
+            default:{
+                      printf("[Tester ]--> Scelta non valida\n");
+                      break;
+            }
+
+        }
     }
 
     rt_task_delete(asyncTask);

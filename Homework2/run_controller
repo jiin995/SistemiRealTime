@@ -15,6 +15,7 @@ echo "*** CONTROLLER TASK ***"
 echo
 echo "Press <enter> to start the controller:"
 read junk
+insmod rt_controller_k.ko
 lxterminal -e './allarm' &
 ./controller
 echo "Done. Press <Ctrl-C> to kill the process"

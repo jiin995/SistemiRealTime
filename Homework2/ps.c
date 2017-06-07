@@ -23,7 +23,7 @@ static pthread_t polling_thread;
 SEM* mutex;
 MBX* request_mbx;
 int *req;
-int *op;
+int op;
 
 static int keep_on_running = 1;
 
@@ -46,15 +46,13 @@ static void polling_loop(long p){
 
         rt_sem_wait(mutex);
            if((*req)==1){
-                if(rt_mbx_send_if(request_mbx,req,sizeof(int))!=0)
-               //     printf("[Polling Server] --> Error while send the request action to actuate \n");
-                    *op=-1;
-		    	else
-				   // printf("[Polling Server] --> Request inoltred to Gather task");
-                   *op=1; 
+                if(rt_mbx_send_if(request_mbx,req,sizeof(int))!=0)                //     printf("[Polling Server] --> Error while send the request action to actuate \n");
+                    op=-1;
+		    	else // printf("[Polling Server] --> Request inoltred to Gather task");
+                   op=1; 
                 *req=0;           
             }else
-                *op=0;
+                op=0;
 
         rt_sem_signal(mutex);
 
@@ -83,8 +81,7 @@ int main(void){
     req=rtai_malloc(REQ_SHM,sizeof(int));
     request_mbx=rt_typed_named_mbx_init(REQUEST_MBX,sizeof(int),FIFO_Q);
 
-    op=rtai_malloc(335566,sizeof(int));
-    *op=0;
+    op=0;
     *req=0;
     
     if (rt_is_hard_timer_running()) {
@@ -99,15 +96,15 @@ int main(void){
     pthread_create(&polling_thread, NULL, polling_loop, NULL);
 
     while(keep_on_running){
-        if(*op==-1){
+        if(op==-1){
             printf("[Polling Server] --> Error while send the request to Gather task \n");
         }
-        else if(*op==1){
+        else if(op==1){
             printf("[Polling Server] --> Request inoltred to Gather task \n");
         }
 
        //printf("active\n");
-       	rt_sleep(10000000);
+        rt_sleep(10000000); //perche' ???
     }
     
     return 0;

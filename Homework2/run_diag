@@ -1,0 +1,6 @@
+#!/bin/bash
+
+
+lxterminal -e './polling' &
+lxterminal -e './test' &
+lxterminal -e './diag' &

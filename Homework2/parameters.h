@@ -24,6 +24,7 @@
 
 #define SPACE_SEM 1234444
 #define MEAS_SEM 1234445
+#define STCK_SEM "STOP_CK"
 #define ACQ_MUTEX 323232
 #define FIL_MUTEX 344344
 #define ALLARM_SEM "ALL_SEM" //semaforo per inviare l'allarme al task allarm
@@ -35,8 +36,6 @@
 #define FAILED -1
 
 typedef struct  {
-    int req;
-    int buffer_req;
     int status_controller_u;
     int status_controller_k;
     int buffer[BUF_SIZE];
