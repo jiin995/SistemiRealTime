@@ -36,7 +36,7 @@ int main(void){
 
     int i=1;
 
-    printf("The diag task is STARTED!\n");
+    printf("The diag task is STARTED!\nPress one and enter for send request\n");
  //	signal(SIGINT, endme);
 
     if(!(diagTask = rt_task_init(nam2num("DIAG"),1,STACK_SIZE,0))){
