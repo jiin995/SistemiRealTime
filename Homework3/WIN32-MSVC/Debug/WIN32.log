@@ -1,0 +1,33 @@
+﻿  rateMonotonic.c
+c:\users\jiin995\desktop\git\sistemirealtime\homework3\win32-msvc\freertosconfig.h(162): fatal error C1083: Non è possibile aprire il file inclusione: 'trcKernelPort.h': No such file or directory
+  main.c
+c:\users\jiin995\desktop\git\sistemirealtime\homework3\win32-msvc\main.c(8): fatal error C1083: Non è possibile aprire il file inclusione: 'FreeRTOS.h': No such file or directory
+  Run-time-stats-utils.c
+c:\users\jiin995\desktop\git\sistemirealtime\homework3\win32-msvc\run-time-stats-utils.c(83): fatal error C1083: Non è possibile aprire il file inclusione: 'FreeRTOS.h': No such file or directory
+  timers.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\timers.c': No such file or directory
+  tasks.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\tasks.c': No such file or directory
+  queue.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\queue.c': No such file or directory
+  heap_5.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\portable\MemMang\heap_5.c': No such file or directory
+  port.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\portable\MSVC-MingW\port.c': No such file or directory
+  list.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\list.c': No such file or directory
+  event_groups.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\event_groups.c': No such file or directory
+  croutine.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\Source\croutine.c': No such file or directory
+  trcUser.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\..\FreeRTOS-Plus\Source\FreeRTOS-Plus-Trace\trcUser.c': No such file or directory
+  trcKernelPort.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\..\FreeRTOS-Plus\Source\FreeRTOS-Plus-Trace\trcKernelPort.c': No such file or directory
+  trcKernel.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\..\FreeRTOS-Plus\Source\FreeRTOS-Plus-Trace\trcKernel.c': No such file or directory
+  trcHardwarePort.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\..\FreeRTOS-Plus\Source\FreeRTOS-Plus-Trace\trcHardwarePort.c': No such file or directory
+  trcBase.c
+c1 : fatal error C1083: Non è possibile aprire il file origine: '..\..\..\FreeRTOS-Plus\Source\FreeRTOS-Plus-Trace\trcBase.c': No such file or directory
+  Generazione del codice in corso...
